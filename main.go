@@ -5,6 +5,9 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
+	"strconv"
+	"time"
 )
 
 func main() {
@@ -35,6 +38,7 @@ func main() {
 		}
 		go func(conn net.Conn) {
 			i := 0
+			j := 0
 			for {
 				b := make([]byte, 1024)
 				_, err := conn.Read(b)
@@ -43,11 +47,24 @@ func main() {
 						i++
 						if i > 3 {
 							log.Println("server unhealthy error:", err)
+							err = os.WriteFile("unhealthy_file.txt", []byte(fmt.Sprintf("Server is unhealthy", err)), 0644)
+							if err != nil {
+								log.Fatal(err)
+							}
 						}
 					}
 					break
 				}
+
+				if j%4 == 0 {
+					err = os.WriteFile(strconv.FormatInt(time.Now().Unix(), 5)+".txt", append(b), 0644)
+					if err != nil {
+						log.Fatal(err)
+					}
+				}
+
 				fmt.Println(string(b))
+				j++
 			}
 			fmt.Println("Stopping handle connection")
 		}(conn)
